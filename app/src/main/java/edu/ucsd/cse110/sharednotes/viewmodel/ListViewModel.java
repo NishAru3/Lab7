@@ -1,6 +1,7 @@
 package edu.ucsd.cse110.sharednotes.viewmodel;
 
 import android.app.Application;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
@@ -46,6 +47,8 @@ public class ListViewModel extends AndroidViewModel {
     public LiveData<Note> getOrCreateNote(String title) {
         if (!repo.existsLocal(title)) {
             var note = new Note(title, "");
+            Log.i("NOTE STRING LVM:", note.toJSON());
+
             repo.upsertLocal(note, false);
         }
 

@@ -1,5 +1,7 @@
 package edu.ucsd.cse110.sharednotes.model;
 
+import android.util.Log;
+
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.MutableLiveData;
@@ -44,8 +46,9 @@ public class NoteRepository {
 
         Observer<Note> updateFromRemote = theirNote -> {
             var ourNote = note.getValue();
-            if (theirNote == null) return; // do nothing
+            if (theirNote.title == null) return; // do nothing
             if (ourNote == null || ourNote.version < theirNote.version) {
+                Log.i("NOTE STRING GETSYNCED:", theirNote.toJSON());
                 upsertLocal(theirNote, false);
             }
         };
@@ -78,10 +81,12 @@ public class NoteRepository {
         // We don't want to increment when we sync from the server, just when we save.
         if (incrementVersion) note.version = note.version + 1;
         note.version = note.version + 1;
+        Log.i("NOTE STRING UPSERTLOCAL2:", note.toJSON());
         dao.upsert(note);
     }
 
     public void upsertLocal(Note note) {
+        Log.i("NOTE STRING UPSERTLOCAL1:", note.toJSON());
         upsertLocal(note, true);
     }
 
