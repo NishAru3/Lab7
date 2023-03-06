@@ -3,16 +3,18 @@ package edu.ucsd.cse110.sharednotes.model;
 import android.util.Log;
 
 import androidx.annotation.AnyThread;
-import androidx.annotation.MainThread;
 import androidx.annotation.WorkerThread;
 
-import com.google.gson.Gson;
-
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import okhttp3.OkHttpClient;
+import okhttp3.MediaType;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 
 public class NoteAPI {
     // TODO: Implement the API using OkHttp!
@@ -24,6 +26,9 @@ public class NoteAPI {
     private volatile static NoteAPI instance = null;
 
     private OkHttpClient client;
+
+    public static final MediaType JSON
+            = MediaType.get("application/json; charset=utf-8");
 
     public NoteAPI() {
         this.client = new OkHttpClient();
@@ -65,6 +70,7 @@ public class NoteAPI {
         }
     }
 
+
     @AnyThread
     public Future<String> echoAsync(String msg) {
         var executor = Executors.newSingleThreadExecutor();
@@ -73,4 +79,65 @@ public class NoteAPI {
         // We can use future.get(1, SECONDS) to wait for the result.
         return future;
     }
+
+    @WorkerThread
+    public Note getNote(String title) {
+        // URLs cannot contain spaces, so we replace them with %20.
+        String encodedMsg = title.replace(" ", "%20");
+
+        var request = new Request.Builder()
+                .url("https://sharednotes.goto.ucsd.edu/notes/" + encodedMsg)
+                .method("GET", null)
+                .build();
+
+        try (var response = client.newCall(request).execute()) {
+            assert response.body() != null;
+            var body = response.body().string();
+            Log.i("GET", body);
+            return Note.fromJSON(body);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    @AnyThread
+    public  Note getNoteAsync(String title) {
+        var executor = Executors.newSingleThreadExecutor();
+        var future = executor.submit(() -> getNote((java.lang.String) title));
+        try {
+            return future.get(1, TimeUnit.SECONDS);
+        } catch (ExecutionException e) {
+            throw new RuntimeException(e);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } catch (TimeoutException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @WorkerThread
+    public void putNote(Note note) {
+        // URLs cannot contain spaces, so we replace them with %20.
+        String title = note.title.replace(" ", "%20");
+        RequestBody body = RequestBody.create(note.toJSON(), JSON);
+        var request = new Request.Builder()
+                .url("https://sharednotes.goto.ucsd.edu/notes/" + title)
+                .method("PUT", body)
+                .build();
+
+        try (var response = client.newCall(request).execute()) {
+            Log.i("PUT", note.toJSON());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @AnyThread
+    public void putNoteAsync(Note note) {
+        var executor = Executors.newSingleThreadExecutor();
+        var future = executor.submit(() -> putNote(note));
+    }
+
+
 }

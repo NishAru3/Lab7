@@ -88,6 +88,7 @@ public class NoteRepository {
     // Remote Methods
     // ==============
 
+
     public LiveData<Note> getRemote(String title) {
         // TODO: Implement getRemote!
         // TODO: Set up polling background thread (MutableLiveData?)
